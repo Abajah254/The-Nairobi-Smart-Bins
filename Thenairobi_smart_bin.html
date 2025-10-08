@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nairobi Smart Bins - Complete Management</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        .database-status {
+            text-align: center;
+            padding: 8px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        #app {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-radius: 8px;
+            padding: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .nav-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        .nav-tab.active {
+            background: #3498db;
+            color: white;
+        }
+        .nav-tab:hover:not(.active) {
+            background: #ecf0f1;
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Database Controls */
+        .database-controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .db-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .db-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .save-btn { background: #27ae60; color: white; }
+        .load-btn { background: #3498db; color: white; }
+        .clear-btn { background: #e74c3c; color: white; }
+        .export-btn { background: #f39c12; color: white; }
+        
+        /* Common Controls */
+        #controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #binForm {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        #locationSelect, #fillLevelInput {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #locationSelect {
+            flex: 2;
+            min-width: 250px;
+        }
+        #fillLevelInput {
+            flex: 1;
+            min-width: 120px;
+        }
+        #binForm button {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            border: none;
+            flex: 1;
+            min-width: 120px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        #binForm button:hover {
+            background-color: #2980b9;
+        }
+        .location-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .location-btn {
+            padding: 8px 12px;
+            border: 1px solid #3498db;
+            background: white;
+            color: #3498db;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        .location-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        /* Truck Management */
+        .truck-management {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .truck-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto auto;
+            gap: 10px;
+            align-items: end;
+            margin-bottom: 15px;
+        }
+        .truck-form input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .truck-form button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .add-truck-btn {
+            background: #27ae60;
+            color: white;
+        }
+        .truck-list-management {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .truck-management-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .truck-management-card h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        .truck-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .edit-btn {
+            background: #f39c12;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        
+        /* Simulation Controls */
+        #simulation-controls {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        #simulation-controls button {
+            padding: 8px 15px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #startSimulation {
+            background-color: #27ae60;
+            color: white;
+        }
+        #stopSimulation {
+            background-color: #e74c3c;
+            color: white;
+        }
+        #resetBins {
+            background-color: #f39c12;
+            color: white;
+        }
+        
+        /* Map */
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Bin List */
+        #binList {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .bin-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px;
+            border-left: 5px solid #2ecc71;
+        }
+        .bin-card.medium { border-left-color: #f39c12; }
+        .bin-card.full { border-left-color: #e74c3c; }
+        .bin-card.scheduled { 
+            border-left-color: #9b59b6;
+            background: #f8f9fa;
+        }
+        .bin-card.updated {
+            animation: pulse 1s;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        .fill-bar {
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .fill-level {
+            height: 100%;
+            border-radius: 10px;
+            background: #2ecc71;
+            transition: width 0.5s ease;
+        }
+        .location { 
+            font-weight: bold; 
+            margin-bottom: 5px; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .last-updated { 
+            font-size: 0.7em; 
+            color: #95a5a6; 
+            text-align: right;
+            margin-top: 5px;
+        }
+        .simulation-status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .simulation-running {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .simulation-stopped {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        /* Collection Page Styles */
+        .collection-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        .urgent-bins {
+            background-color: #fff5f5;
+        }
+        .truck-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .truck-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .truck-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .truck-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .status-available {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-busy {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .assigned-bins {
+            margin-top: 10px;
+        }
+        .assigned-bin {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .empty-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        .empty-btn:hover {
+            background: #219653;
+        }
+        .assign-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .assign-btn:hover {
+            background: #2980b9;
+        }
+        .empty-all-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .empty-all-btn:hover {
+            background: #c0392b;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>Nairobi Smart Bins - Complete Management</h1>
+        <div class="subtitle">Manage bins, trucks, and collections with persistent database</div>
+        
+        <div class="database-status" id="dbStatus">
+            💾 Database: Data will persist between browser sessions
+        </div>
+
+        <!-- Database Controls -->
+        <div class="database-controls">
+            <div class="db-buttons">
+                <button class="db-btn save-btn" onclick="saveToDatabase()">💾 Save Data Now</button>
+                <button class="db-btn load-btn" onclick="loadFromDatabase()">📂 Load Data</button>
+                <button class="db-btn clear-btn" onclick="clearDatabase()">🗑️ Clear Database</button>
+                <button class="db-btn export-btn" onclick="exportData()">📤 Export Data</button>
+            </div>
+            <div style="margin-top: 10px; font-size: 0.8em; color: #7f8c8d;">
+                Last saved: <span id="lastSaved">Never</span> | 
+                Total Trucks: <span id="totalTrucksCount">0</span> | 
+                Total Bins: <span id="totalBinsDisplay">0</span>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-tab="monitor">📊 Monitor Bins</div>
+            <div class="nav-tab" data-tab="collection">🚛 Collection Management</div>
+            <div class="nav-tab" data-tab="trucks">🚚 Manage Trucks</div>
+        </div>
+
+        <!-- Monitor Tab -->
+        <div id="monitorTab" class="tab-content active">
+            <div id="controls">
+                <form id="binForm">
+                    <select id="locationSelect" required>
+                        <option value="">-- Select a Location --</option>
+                    </select>
+                    <input type="number" id="fillLevelInput" placeholder="Fill Level (0-100)" min="0" max="100" required>
+                    <button type="submit">Add/Update Bin</button>
+                </form>
+                
+                <div class="location-grid" id="quickLocationGrid">
+                    <!-- Quick location buttons will be added here -->
+                </div>
+                
+                <div id="simulation-controls">
+                    <button id="startSimulation">Start Auto-Fill</button>
+                    <button id="stopSimulation">Stop Auto-Fill</button>
+                    <button id="resetBins">Reset All Bins</button>
+                    <div id="simulationStatus" class="simulation-status simulation-stopped">
+                        ⏸️ Simulation Stopped
+                    </div>
+                </div>
+            </div>
+
+            <div id="map"></div>
+
+            <div id="binList">
+                <!-- Bin cards will be generated here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Collection Tab -->
+        <div id="collectionTab" class="tab-content">
+            <div class="collection-stats">
+                <div class="stat-card urgent-bins">
+                    <div class="stat-number" id="urgentBinsCount">0</div>
+                    <div class="stat-label">Bins Needing Collection</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalBinsCount">0</div>
+                    <div class="stat-label">Total Bins Monitored</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="availableTrucksCount">0</div>
+                    <div class="stat-label">Available Trucks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="collectedTodayCount">0</div>
+                    <div class="stat-label">Collected Today</div>
+                </div>
+            </div>
+
+            <div class="truck-list" id="truckList">
+                <!-- Truck cards will be generated here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Trucks Management Tab -->
+        <div id="trucksTab" class="tab-content">
+            <div class="truck-management">
+                <h3>Add New Truck</h3>
+                <form id="truckForm" class="truck-form">
+                    <input type="text" id="truckName" placeholder="Truck Name (e.g., KBC-001)" required>
+                    <input type="text" id="truckDriver" placeholder="Driver Name" required>
+                    <button type="submit" class="add-truck-btn">➕ Add Truck</button>
+                    <button type="button" onclick="clearTruckForm()">🔄 Clear</button>
+                </form>
+            </div>
+
+            <div class="truck-management">
+                <h3>Manage Truck Fleet</h3>
+                <div class="truck-list-management" id="truckManagementList">
+                    <!-- Truck management cards will be added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Truck Modal -->
+    <div id="editTruckModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h3>Edit Truck</h3>
+            <form id="editTruckForm">
+                <input type="hidden" id="editTruckId">
+                <div style="margin-bottom: 15px;">
+                    <label>Truck Name:</label>
+                    <input type="text" id="editTruckName" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;" required>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Driver Name:</label>
+                    <input type="text" id="editTruckDriver" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;" required>
+                </div>
+                <button type="submit" style="background: #3498db; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">
+                    💾 Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Predefined Nairobi locations with exact coordinates
+        const PREDEFINED_LOCATIONS = [
+            { name: "Kibera Market", lat: -1.3046, lng: 36.7817 },
+            { name: "Westgate Shopping Mall", lat: -1.2659, lng: 36.8060 },
+            { name: "Nairobi City Market", lat: -1.2833, lng: 36.8225 },
+            { name: "JKIA Airport", lat: -1.3192, lng: 36.9278 },
+            { name: "Uhuru Park", lat: -1.2884, lng: 36.8163 },
+            { name: "Kenyatta National Hospital", lat: -1.3022, lng: 36.8044 },
+            { name: "University of Nairobi", lat: -1.2804, lng: 36.8179 },
+            { name: "Nairobi National Museum", lat: -1.2722, lng: 36.8128 },
+            { name: "Gikomba Market", lat: -1.2858, lng: 36.8389 },
+            { name: "Yaya Centre", lat: -1.2975, lng: 36.7792 },
+            { name: "Two Rivers Mall", lat: -1.2096, lng: 36.8967 },
+            { name: "Central Business District", lat: -1.2864, lng: 36.8172 },
+            { name: "Kangemi Market", lat: -1.2708, lng: 36.7500 },
+            { name: "Eastleigh Section 3", lat: -1.2750, lng: 36.8500 },
+            { name: "Karen Shopping Centre", lat: -1.3194, lng: 36.7089 }
+        ];
+
+        // Truck fleet data - now editable
+        let TRUCKS = [
+            { id: 1, name: "Truck KBC-001", driver: "John Kamau", status: "available", assignedBins: [] },
+            { id: 2, name: "Truck KBC-002", driver: "Mary Wanjiku", status: "available", assignedBins: [] },
+            { id: 3, name: "Truck KBC-003", driver: "Paul Omondi", status: "available", assignedBins: [] },
+            { id: 4, name: "Truck KBC-004", driver: "Grace Achieng", status: "available", assignedBins: [] }
+        ];
+
+        // Data storage
+        let bins = [];
+        let simulationInterval = null;
+        let simulationSpeed = 60000; // 60 seconds
+        let collectedToday = 0;
+        let nextTruckId = 5; // Start from 5 since we have 4 default trucks
+
+        // DATABASE FUNCTIONS
+        function saveToDatabase() {
+            const dataToSave = {
+                bins: bins,
+                trucks: TRUCKS,
+                collectedToday: collectedToday,
+                nextTruckId: nextTruckId,
+                lastSaved: new Date().toISOString()
+            };
+            
+            try {
+                localStorage.setItem('nairobiSmartBinsData', JSON.stringify(dataToSave));
+                document.getElementById('lastSaved').textContent = new Date().toLocaleString();
+                showDatabaseMessage('✅ Data saved successfully!', 'success');
+            } catch (error) {
+                showDatabaseMessage('❌ Error saving data: ' + error, 'error');
+            }
+        }
+
+        function loadFromDatabase() {
+            try {
+                const savedData = localStorage.getItem('nairobiSmartBinsData');
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    
+                    bins = parsedData.bins || [];
+                    TRUCKS = parsedData.trucks || TRUCKS;
+                    collectedToday = parsedData.collectedToday || 0;
+                    nextTruckId = parsedData.nextTruckId || 5;
+                    
+                    document.getElementById('lastSaved').textContent = 
+                        new Date(parsedData.lastSaved).toLocaleString() || 'Unknown';
+                    
+                    updateUI();
+                    showDatabaseMessage('✅ Data loaded successfully!', 'success');
+                } else {
+                    showDatabaseMessage('ℹ️ No saved data found', 'info');
+                }
+            } catch (error) {
+                showDatabaseMessage('❌ Error loading data: ' + error, 'error');
+            }
+        }
+
+        function clearDatabase() {
+            if (confirm('Are you sure you want to clear all saved data?')) {
+                try {
+                    localStorage.removeItem('nairobiSmartBinsData');
+                    bins = [];
+                    collectedToday = 0;
+                    TRUCKS = [
+                        { id: 1, name: "Truck KBC-001", driver: "John Kamau", status: "available", assignedBins: [] },
+                        { id: 2, name: "Truck KBC-002", driver: "Mary Wanjiku", status: "available", assignedBins: [] },
+                        { id: 3, name: "Truck KBC-003", driver: "Paul Omondi", status: "available", assignedBins: [] },
+                        { id: 4, name: "Truck KBC-004", driver: "Grace Achieng", status: "available", assignedBins: [] }
+                    ];
+                    nextTruckId = 5;
+                    updateUI();
+                    document.getElementById('lastSaved').textContent = 'Never';
+                    showDatabaseMessage('🗑️ Database cleared successfully!', 'success');
+                } catch (error) {
+                    showDatabaseMessage('❌ Error clearing database: ' + error, 'error');
+                }
+            }
+        }
+
+        function exportData() {
+            const dataToExport = {
+                bins: bins,
+                trucks: TRUCKS,
+                collectedToday: collectedToday,
+                exportDate: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(dataToExport, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `nairobi_bins_export_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            
+            showDatabaseMessage('📤 Data exported successfully!', 'success');
+        }
+
+        function showDatabaseMessage(message, type) {
+            const dbStatus = document.getElementById('dbStatus');
+            dbStatus.textContent = message;
+            
+            if (type === 'success') {
+                dbStatus.style.background = '#d4edda';
+                dbStatus.style.color = '#155724';
+                dbStatus.style.border = '1px solid #c3e6cb';
+            } else if (type === 'error') {
+                dbStatus.style.background = '#f8d7da';
+                dbStatus.style.color = '#721c24';
+                dbStatus.style.border = '1px solid #f5c6cb';
+            } else {
+                dbStatus.style.background = '#fff3cd';
+                dbStatus.style.color = '#856404';
+                dbStatus.style.border = '1px solid #ffeaa7';
+            }
+            
+            setTimeout(() => {
+                dbStatus.textContent = '💾 Database: Data will persist between browser sessions';
+                dbStatus.style.background = '#d4edda';
+                dbStatus.style.color = '#155724';
+                dbStatus.style.border = '1px solid #c3e6cb';
+            }, 3000);
+        }
+
+        // TRUCK MANAGEMENT FUNCTIONS
+        function addTruck(event) {
+            event.preventDefault();
+            
+            const truckName = document.getElementById('truckName').value.trim();
+            const truckDriver = document.getElementById('truckDriver').value.trim();
+            
+            if (!truckName || !truckDriver) {
+                alert('Please fill in both truck name and driver name');
+                return;
+            }
+            
+            // Check if truck name already exists
+            if (TRUCKS.some(truck => truck.name === truckName)) {
+                alert('A truck with this name already exists!');
+                return;
+            }
+            
+            const newTruck = {
+                id: nextTruckId++,
+                name: truckName,
+                driver: truckDriver,
+                status: "available",
+                assignedBins: []
+            };
+            
+            TRUCKS.push(newTruck);
+            saveToDatabase();
+            updateUI();
+            document.getElementById('truckForm').reset();
+            showDatabaseMessage('🚚 New truck added successfully!', 'success');
+        }
+
+        function editTruck(truckId) {
+            const truck = TRUCKS.find(t => t.id === truckId);
+            if (truck) {
+                document.getElementById('editTruckId').value = truck.id;
+                document.getElementById('editTruckName').value = truck.name;
+                document.getElementById('editTruckDriver').value = truck.driver;
+                document.getElementById('editTruckModal').style.display = 'block';
+            }
+        }
+
+        function saveTruckEdit(event) {
+            event.preventDefault();
+            
+            const truckId = parseInt(document.getElementById('editTruckId').value);
+            const truckName = document.getElementById('editTruckName').value.trim();
+            const truckDriver = document.getElementById('editTruckDriver').value.trim();
+            
+            const truckIndex = TRUCKS.findIndex(t => t.id === truckId);
+            if (truckIndex !== -1) {
+                // Check if another truck already has this name
+                const duplicateTruck = TRUCKS.find(t => t.name === truckName && t.id !== truckId);
+                if (duplicateTruck) {
+                    alert('Another truck already has this name!');
+                    return;
+                }
+                
+                TRUCKS[truckIndex].name = truckName;
+                TRUCKS[truckIndex].driver = truckDriver;
+                saveToDatabase();
+                updateUI();
+                closeEditModal();
+                showDatabaseMessage('🚚 Truck updated successfully!', 'success');
+            }
+        }
+
+        function deleteTruck(truckId) {
+            const truck = TRUCKS.find(t => t.id === truckId);
+            if (truck) {
+                if (truck.assignedBins.length > 0) {
+                    alert('Cannot delete a truck that has assigned bins! Please reassign or empty the bins first.');
+                    return;
+                }
+                
+                if (confirm(`Are you sure you want to delete ${truck.name}?`)) {
+                    TRUCKS = TRUCKS.filter(t => t.id !== truckId);
+                    saveToDatabase();
+                    updateUI();
+                    showDatabaseMessage('🚚 Truck deleted successfully!', 'success');
+                }
+            }
+        }
+
+        function clearTruckForm() {
+            document.getElementById('truckForm').reset();
+        }
+
+        function closeEditModal() {
+            document.getElementById('editTruckModal').style.display = 'none';
+        }
+
+        function updateTruckManagement() {
+            const truckManagementList = document.getElementById('truckManagementList');
+            truckManagementList.innerHTML = '';
+            
+            TRUCKS.forEach(truck => {
+                const truckCard = document.createElement('div');
+                truckCard.className = 'truck-management-card';
+                
+                truckCard.innerHTML = `
+                    <h4>${truck.name}</h4>
+                    <div><strong>Driver:</strong> ${truck.driver}</div>
+                    <div><strong>Status:</strong> ${truck.status === 'available' ? '🟢 Available' : '🟡 Busy'}</div>
+                    <div><strong>Assigned Bins:</strong> ${truck.assignedBins.length}</div>
+                    <div class="truck-actions">
+                        <button class="edit-btn" onclick="editTruck(${truck.id})">✏️ Edit</button>
+                        <button class="delete-btn" onclick="deleteTruck(${truck.id})">🗑️ Delete</button>
+                    </div>
+                `;
+                truckManagementList.appendChild(truckCard);
+            });
+            
+            // Update truck count in database controls
+            document.getElementById('totalTrucksCount').textContent = TRUCKS.length;
+            document.getElementById('totalBinsDisplay').textContent = bins.length;
+        }
+
+        // Auto-save every 30 seconds
+        setInterval(saveToDatabase, 30000);
+
+        // Initialize map centered on Nairobi
+        const map = L.map('map').setView([-1.2921, 36.8219], 12);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Tab navigation
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+                
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
+            });
+        });
+
+        // Initialize location selector
+        function initializeLocationSelector() {
+            const locationSelect = document.getElementById('locationSelect');
+            const quickGrid = document.getElementById('quickLocationGrid');
+            
+            locationSelect.innerHTML = '<option value="">-- Select a Location --</option>';
+            quickGrid.innerHTML = '';
+            
+            PREDEFINED_LOCATIONS.forEach(location => {
+                const option = document.createElement('option');
+                option.value = location.name;
+                option.textContent = location.name;
+                locationSelect.appendChild(option);
+                
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'location-btn';
+                button.textContent = location.name;
+                button.addEventListener('click', () => {
+                    document.getElementById('locationSelect').value = location.name;
+                    document.getElementById('fillLevelInput').focus();
+                });
+                quickGrid.appendChild(button);
+            });
+        }
+
+        // Handle form submissions
+        document.getElementById('binForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const locationName = document.getElementById('locationSelect').value;
+            const fillLevel = parseInt(document.getElementById('fillLevelInput').value);
+
+            if (!locationName) {
+                alert('Please select a location');
+                return;
+            }
+
+            const locationData = PREDEFINED_LOCATIONS.find(loc => loc.name === locationName);
+            
+            if (!locationData) {
+                alert('Location not found');
+                return;
+            }
+
+            const existingBinIndex = bins.findIndex(bin => bin.location === locationName);
+
+            if (existingBinIndex >= 0) {
+                bins[existingBinIndex].fillLevel = fillLevel;
+                bins[existingBinIndex].lastUpdated = new Date();
+            } else {
+                const newBin = {
+                    location: locationName,
+                    fillLevel: fillLevel,
+                    lat: locationData.lat,
+                    lng: locationData.lng,
+                    lastUpdated: new Date(),
+                    lastChange: 0,
+                    collectionScheduled: false
+                };
+                bins.push(newBin);
+            }
+
+            saveToDatabase();
+            updateUI();
+            document.getElementById('fillLevelInput').value = '';
+        });
+
+        document.getElementById('truckForm').addEventListener('submit', addTruck);
+        document.getElementById('editTruckForm').addEventListener('submit', saveTruckEdit);
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('editTruckModal');
+            if (event.target === modal) {
+                closeEditModal();
+            }
+        }
+
+        // [Rest of the existing functions remain the same - simulation controls, collection management, etc.]
+        // Simulation controls
+        document.getElementById('startSimulation').addEventListener('click', startSimulation);
+        document.getElementById('stopSimulation').addEventListener('click', stopSimulation);
+        document.getElementById('resetBins').addEventListener('click', resetBins);
+
+        function startSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+            }
+            
+            simulationInterval = setInterval(autoFillBins, simulationSpeed);
+            document.getElementById('simulationStatus').className = 'simulation-status simulation-running';
+            document.getElementById('simulationStatus').textContent = '▶️ Simulation Running - Bins filling up...';
+        }
+
+        function stopSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+            }
+            document.getElementById('simulationStatus').className = 'simulation-status simulation-stopped';
+            document.getElementById('simulationStatus').textContent = '⏸️ Simulation Stopped';
+        }
+
+        function resetBins() {
+            bins = [];
+            collectedToday = 0;
+            TRUCKS.forEach(truck => {
+                truck.assignedBins = [];
+                truck.status = "available";
+            });
+            saveToDatabase();
+            updateUI();
+        }
+
+        function autoFillBins() {
+            bins.forEach(bin => {
+                const increase = Math.floor(Math.random() * 11) + 5;
+                bin.lastChange = increase;
+                bin.fillLevel = Math.min(100, bin.fillLevel + increase);
+                bin.lastUpdated = new Date();
+            });
+            saveToDatabase();
+            updateUI();
+        }
+
+        // Collection management functions
+        function assignBinToTruck(binLocation, truckId) {
+            const truck = TRUCKS.find(t => t.id === truckId);
+            const bin = bins.find(b => b.location === binLocation);
+            
+            if (truck && bin) {
+                if (!truck.assignedBins.includes(binLocation)) {
+                    truck.assignedBins.push(binLocation);
+                    truck.status = "busy";
+                    bin.collectionScheduled = true;
+                    saveToDatabase();
+                    updateUI();
+                }
+            }
+        }
+
+        function emptyBin(binLocation, truckId) {
+            const truck = TRUCKS.find(t => t.id === truckId);
+            const bin = bins.find(b => b.location === binLocation);
+            
+            if (truck && bin) {
+                truck.assignedBins = truck.assignedBins.filter(loc => loc !== binLocation);
+                bin.fillLevel = 0;
+                bin.collectionScheduled = false;
+                bin.lastUpdated = new Date();
+                
+                if (truck.assignedBins.length === 0) {
+                    truck.status = "available";
+                }
+                
+                collectedToday++;
+                saveToDatabase();
+                updateUI();
+            }
+        }
+
+        function emptyAllBins(truckId) {
+            const truck = TRUCKS.find(t => t.id === truckId);
+            
+            if (truck) {
+                truck.assignedBins.forEach(binLocation => {
+                    const bin = bins.find(b => b.location === binLocation);
+                    if (bin) {
+                        bin.fillLevel = 0;
+                        bin.collectionScheduled = false;
+                        bin.lastUpdated = new Date();
+                        collectedToday++;
+                    }
+                });
+                
+                truck.assignedBins = [];
+                truck.status = "available";
+                saveToDatabase();
+                updateUI();
+            }
+        }
+
+        // Update collection page
+        function updateCollectionPage() {
+            const urgentBins = bins.filter(bin => bin.fillLevel >= 80).length;
+            document.getElementById('urgentBinsCount').textContent = urgentBins;
+            document.getElementById('totalBinsCount').textContent = bins.length;
+            document.getElementById('availableTrucksCount').textContent = TRUCKS.filter(t => t.status === "available").length;
+            document.getElementById('collectedTodayCount').textContent = collectedToday;
+
+            const truckList = document.getElementById('truckList');
+            truckList.innerHTML = '';
+
+            TRUCKS.forEach(truck => {
+                const truckCard = document.createElement('div');
+                truckCard.className = 'truck-card';
+                
+                const assignedBinsHTML = truck.assignedBins.map(binLocation => {
+                    const bin = bins.find(b => b.location === binLocation);
+                    return `
+                        <div class="assigned-bin">
+                            <span>${binLocation}</span>
+                            <span>${bin ? bin.fillLevel + '%' : 'N/A'}</span>
+                            <button class="empty-btn" onclick="emptyBin('${binLocation}', ${truck.id})">
+                                Empty
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+
+                truckCard.innerHTML = `
+                    <h3>
+                        ${truck.name}
+                        <span class="truck-status status-${truck.status}">
+                            ${truck.status === 'available' ? '🟢 Available' : '🟡 Busy'}
+                        </span>
+                    </h3>
+                    <div><strong>Driver:</strong> ${truck.driver}</div>
+                    <div class="assigned-bins">
+                        <strong>Assigned Bins (${truck.assignedBins.length}):</strong>
+                        ${assignedBinsHTML || '<div style="padding: 8px; color: #7f8c8d; text-align: center;">No bins assigned</div>'}
+                    </div>
+                    ${truck.assignedBins.length > 0 ? `
+                        <button class="empty-all-btn" onclick="emptyAllBins(${truck.id})">
+                            🗑️ Empty All Assigned Bins
+                        </button>
+                    ` : ''}
+                    <button class="assign-btn" onclick="showBinAssignment(${truck.id})">
+                        📋 Assign New Bin
+                    </button>
+                `;
+                truckList.appendChild(truckCard);
+            });
+        }
+
+        // Show bin assignment modal
+        function showBinAssignment(truckId) {
+            const urgentBins = bins.filter(bin => bin.fillLevel >= 80 && !bin.collectionScheduled);
+            
+            if (urgentBins.length === 0) {
+                alert('No bins currently need collection!');
+                return;
+            }
+
+            let assignmentOptions = 'Select a bin to assign:\n\n';
+            urgentBins.forEach((bin, index) => {
+                assignmentOptions += `${index + 1}. ${bin.location} (${bin.fillLevel}% full)\n`;
+            });
+
+            const selection = prompt(assignmentOptions + '\nEnter the number of the bin:');
+            const selectedIndex = parseInt(selection) - 1;
+
+            if (selectedIndex >= 0 && selectedIndex < urgentBins.length) {
+                const selectedBin = urgentBins[selectedIndex];
+                assignBinToTruck(selectedBin.location, truckId);
+                alert(`Assigned ${selectedBin.location} to truck!`);
+            }
+        }
+
+        // Function to update the entire UI
+        function updateUI() {
+            updateMap();
+            updateBinList();
+            updateCollectionPage();
+            updateTruckManagement();
+        }
+
+        // Function to update the map with markers
+        function updateMap() {
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            bins.forEach(bin => {
+                let markerColor = 'green';
+                if (bin.collectionScheduled) markerColor = 'purple';
+                else if (bin.fillLevel > 80) markerColor = 'red';
+                else if (bin.fillLevel > 40) markerColor = 'orange';
+
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background-color: ${markerColor}; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>`,
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+
+                const marker = L.marker([bin.lat, bin.lng], { icon: icon }).addTo(map);
+                
+                const popupContent = `
+                    <b>${bin.location}</b><br>
+                    Fill Level: ${bin.fillLevel}%<br>
+                    ${bin.collectionScheduled ? '🚛 Collection Scheduled' : '📍 Ready for collection'}<br>
+                    ${bin.lastChange > 0 ? `+${bin.lastChange}% since last update` : ''}
+                `;
+                
+                marker.bindPopup(popupContent);
+            });
+        }
+
+        // Function to update the bin list
+        function updateBinList() {
+            const binListContainer = document.getElementById('binList');
+            binListContainer.innerHTML = '';
+
+            bins.forEach((bin, index) => {
+                let statusClass = '';
+                if (bin.collectionScheduled) statusClass = 'scheduled';
+                else if (bin.fillLevel >= 80) statusClass = 'full';
+                else if (bin.fillLevel >= 40) statusClass = 'medium';
+
+                const updatedClass = bin.lastChange > 0 ? 'updated' : '';
+
+                const binCard = document.createElement('div');
+                binCard.className = `bin-card ${statusClass} ${updatedClass}`;
+                binCard.innerHTML = `
+                    <div class="location">
+                        <span>${bin.location}</span>
+                        <span style="font-size: 0.8em; color: #7f8c8d;">${bin.fillLevel}%</span>
+                    </div>
+                    <div style="font-size: 0.7em; color: #27ae60; margin-bottom: 5px;">
+                        📍 ${bin.collectionScheduled ? '🚛 Collection Scheduled' : 'Ready for collection'}
+                    </div>
+                    <div class="fill-bar">
+                        <div class="fill-level" style="width: ${bin.fillLevel}%"></div>
+                    </div>
+                    ${bin.lastChange > 0 ? 
+                        `<div style="color: #27ae60; font-size: 0.8em;">↗️ +${bin.lastChange}%</div>` : 
+                        '<div style="height: 16px;"></div>'
+                    }
+                    ${bin.fillLevel >= 80 ? 
+                        '<div style="color: red; font-weight: bold; font-size: 0.9em;">🚨 NEEDS COLLECTION!</div>' : 
+                        ''
+                    }
+                    <div class="last-updated">Updated: ${bin.lastUpdated.toLocaleTimeString()}</div>
+                `;
+                binListContainer.appendChild(binCard);
+            });
+
+            bins.forEach(bin => bin.lastChange = 0);
+        }
+
+        // Add some sample bins automatically
+        function addSampleBins() {
+            const sampleLocations = [
+                { name: "Kibera Market", fill: 85 },
+                { name: "Westgate Shopping Mall", fill: 60 },
+                { name: "Nairobi City Market", fill: 92 },
+                { name: "Uhuru Park", fill: 45 }
+            ];
+
+            sampleLocations.forEach(sample => {
+                const locationData = PREDEFINED_LOCATIONS.find(loc => loc.name === sample.name);
+                if (locationData) {
+                    bins.push({
+                        location: sample.name,
+                        fillLevel: sample.fill,
+                        lat: locationData.lat,
+                        lng: locationData.lng,
+                        lastUpdated: new Date(),
+                        lastChange: 0,
+                        collectionScheduled: false
+                    });
+                }
+            });
+            updateUI();
+        }
+
+        // Make functions global for HTML onclick events
+        window.emptyBin = emptyBin;
+        window.emptyAllBins = emptyAllBins;
+        window.showBinAssignment = showBinAssignment;
+        window.assignBinToTruck = assignBinToTruck;
+        window.saveToDatabase = saveToDatabase;
+        window.loadFromDatabase = loadFromDatabase;
+        window.clearDatabase = clearDatabase;
+        window.exportData = exportData;
+        window.addTruck = addTruck;
+        window.editTruck = editTruck;
+        window.deleteTruck = deleteTruck;
+        window.clearTruckForm = clearTruckForm;
+        window.closeEditModal = closeEditModal;
+        window.saveTruckEdit = saveTruckEdit;
+
+        // Initialize the application
+        initializeLocationSelector();
+        
+        // Try to load existing data on startup
+        loadFromDatabase();
+        
+        // If no data exists, add sample bins
+        if (bins.length === 0) {
+            addSampleBins();
+        }
+        
+        // Auto-start the simulation after 3 seconds
+        setTimeout(startSimulation, 3000);
+    </script>
+</body>
+</html>
